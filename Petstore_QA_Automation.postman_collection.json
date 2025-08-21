@@ -1,0 +1,242 @@
+{
+  "info": {
+    "_postman_id": "484910dd-300d-4cdb-86b2-b8a88f9321bb",
+    "name": "Petstore QA Automation",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_exported_using": "ChatGPT Python tool"
+  },
+  "item": [
+    {
+      "name": "Create Pet (POST)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Create Pet \u2014 Pre-request: seed env vars and support data-driven runs",
+              "if (!pm.environment.get('petId')) { pm.environment.set('petId', Math.floor(Date.now()/1000) + Math.floor(Math.random()*1000)); }",
+              "const nameFromData = pm.iterationData.get('petName');",
+              "const statusFromData = pm.iterationData.get('status');",
+              "if (nameFromData) { pm.environment.set('petName', nameFromData); }",
+              "if (statusFromData) { pm.environment.set('status', statusFromData); }",
+              "if (!pm.environment.get('petName')) { pm.environment.set('petName', 'pet-' + pm.environment.get('petId')); }",
+              "if (!pm.environment.get('status')) { pm.environment.set('status', 'available'); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Create Pet \u2014 Tests",
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.expect(json).to.have.property('id');",
+              "pm.environment.set('petId', json.id);",
+              "pm.test('Name matches', function () { pm.expect(json.name).to.eql(pm.environment.get('petName')); });",
+              "pm.test('Status present', function () { pm.expect(json).to.have.property('status'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"id\": \"{{petId}}\", \"name\": \"{{petName}}\", \"photoUrls\": [\"https://example.com/photo\"], \"status\": \"{{status}}\"}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/pet",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "pet"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Pet by ID (GET)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Get Pet by ID \u2014 Tests",
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('ID matches env', function () { pm.expect(json.id).to.eql(parseInt(pm.environment.get('petId'))); });",
+              "pm.test('Name present', function () { pm.expect(json).to.have.property('name'); });",
+              "pm.test('Status present', function () { pm.expect(json).to.have.property('status'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/pet/{{petId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "pet",
+            "{{petId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Update Pet (PUT)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Update Pet \u2014 Pre-request: compute updated values",
+              "const updatedName = ((pm.environment.get('petName')||'pet') + '-updated');",
+              "pm.environment.set('petNameUpdated', updatedName);",
+              "pm.environment.set('statusUpdated', 'sold');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Update Pet \u2014 Tests",
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Updated name applied', function () { pm.expect(json.name).to.eql(pm.environment.get('petNameUpdated')); });",
+              "pm.test('Updated status applied', function () { pm.expect(json.status).to.eql(pm.environment.get('statusUpdated')); });",
+              "// Carry forward updated values",
+              "pm.environment.set('petName', pm.environment.get('petNameUpdated'));",
+              "pm.environment.set('status', pm.environment.get('statusUpdated'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"id\": \"{{petId}}\", \"name\": \"{{petNameUpdated}}\", \"photoUrls\": [\"https://example.com/photo\"], \"status\": \"{{statusUpdated}}\"}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/pet",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "pet"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Find Pets by Status (GET)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Find By Status \u2014 Pre-request: ensure status is the updated one if present",
+              "pm.environment.set('status', pm.environment.get('statusUpdated') || pm.environment.get('status') || 'available');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Find By Status \u2014 Tests",
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+              "const arr = pm.response.json();",
+              "pm.test('Response is an array', function () { pm.expect(Array.isArray(arr)).to.be.true; });",
+              "const targetId = parseInt(pm.environment.get('petId'));",
+              "const found = Array.isArray(arr) && arr.some(p => p && (p.id === targetId));",
+              "pm.test('Our pet appears under this status', function () { pm.expect(found, 'pet listed in search results').to.be.true; });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/pet/findByStatus?status={{status}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "pet",
+            "findByStatus"
+          ],
+          "query": [
+            {
+              "key": "status",
+              "value": "{{status}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Delete Pet (DELETE)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Delete Pet \u2014 Tests (and verify 404 on subsequent GET)",
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+              "const petId = pm.environment.get('petId');",
+              "pm.sendRequest({ url: pm.environment.get('baseUrl') + '/pet/' + petId, method: 'GET' }, function (err, res) {",
+              "  pm.test('GET after delete returns 404', function () {",
+              "    pm.expect(res).to.be.an('object');",
+              "    pm.expect(res.code).to.eql(404);",
+              "  });",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/pet/{{petId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "pet",
+            "{{petId}}"
+          ]
+        }
+      }
+    }
+  ]
+}
